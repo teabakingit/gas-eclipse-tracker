@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Energy Prices Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Georgia', 'Times New Roman', serif;
+            background-color: #1a1a1a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            position: relative;
+            width: 100%;
+            max-width: 1000px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            overflow: hidden;
+            border-radius: 8px;
+        }
+
+        /* Banner styling for top prices */
+        .banner {
+            background-color: #2b3846;
+            color: #fbf0d9;
+            text-align: center;
+            padding: 20px 15px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        .banner h1 {
+            font-size: clamp(1.2rem, 3vw, 2.2rem);
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        .banner p {
+            font-size: clamp(1rem, 2.5vw, 1.8rem);
+            font-weight: bold;
+        }
+
+        /* Background image container */
+        .image-wrapper img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Banner Displaying Live Prices -->
+        <div class="banner">
+            <h1>Daily Energy Prices</h1>
+            <p>
+                GALLON OF GASOLINE: <span id="gas-price">Loading...</span> | 
+                DIESEL FUEL: <span id="diesel-price">Loading...</span>
+            </p>
+        </div>
+
+        <!-- Eclipse Image Below Banner -->
+        <div class="image-wrapper">
+            <img src="background.jpg" alt="Staring at the Eclipse">
+        </div>
+    </div>
+
+    <script>
+        // API Configuration
+        // Replace API_KEY with a free key from CollectAPI (or your preferred API provider)
+        const API_KEY = "YOUR_API_KEY_HERE";
+
+        async function fetchFuelPrices() {
+            try {
+                // Fetch data from Gas Price API
+                const response = await fetch("https://api.collectapi.com/gasPrice/stateUsaPrice?state=US", {
+                    method: "GET",
+                    headers: {
+                        "content-type": "application/json",
+                        "authorization": `apikey ${API_KEY}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Update HTML with response prices
+                    document.getElementById("gas-price").innerText = `$${data.result.gasoline}`;
+                    document.getElementById("diesel-price").innerText = `$${data.result.diesel}`;
+                } else {
+                    fallbackPrices();
+                }
+            } catch (error) {
+                console.error("Error fetching fuel prices:", error);
+                fallbackPrices();
+            }
+        }
+
+        // Fallback default prices if API request fails or is missing key
+        function fallbackPrices() {
+            document.getElementById("gas-price").innerText = "$3.95";
+            document.getElementById("diesel-price").innerText = "$4.18";
+        }
+
+        // Fetch on initial load
+        fetchFuelPrices();
+    </script>
+</body>
+</html>
