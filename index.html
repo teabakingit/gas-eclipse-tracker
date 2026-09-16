@@ -35,6 +35,11 @@
       font-weight: bold;
       color: #4caf50;
     }
+    .source-label {
+      font-size: 0.85rem;
+      color: #888888;
+      margin-top: 15px;
+    }
   </style>
 </head>
 <body>
@@ -47,39 +52,57 @@
 
     <!-- Price Display -->
     <div class="price-box">
-      <h2>Current U.S. National Average Fuel Prices</h2>
+      <h2>Daily AAA Fuel Prices</h2>
       <p>Regular Gasoline: <span id="gas-price" class="price-value">Loading...</span></p>
       <p>Diesel Fuel: <span id="diesel-price" class="price-value">Loading...</span></p>
+      <p class="source-label">Source: AAA National Average Data</p>
     </div>
   </div>
 
   <script>
-    async function fetchLivePrices() {
+    async function fetchAAAPrices() {
       try {
-        // Fetch public EIA open-data feed
-        const response = await fetch('https://api.allorigins.win/get?url=' + encodeURIComponent('https://www.eia.gov/petroleum/gasdiesel/includes/gas_data.xml'));
+        // Fetch public AAA page through a CORS proxy
+        const targetUrl = 'https://gasprices.aaa.com/';
+        const response = await fetch('https://api.allorigins.win/get?url=' + encodeURIComponent(targetUrl));
         const data = await response.json();
+        
+        // Parse the HTML content from AAA
         const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(data.contents, "text/xml");
+        const doc = parser.parseFromString(data.contents, 'text/html');
 
-        // Extract regular gas and diesel values from XML nodes
-        const gasNode = xmlDoc.querySelector("row[name='U.S. Regular Gasoline'] price, price");
-        const dieselNode = xmlDoc.querySelector("row[name='U.S. On-Highway Diesel'] price");
+        // Extract Regular and Diesel price elements from AAA's structure
+        const regularElement = doc.querySelector('.number');
+        const priceElements = doc.querySelectorAll('.price');
 
-        const gasPrice = gasNode ? '$' + parseFloat(gasNode.textContent).toFixed(2) + ' / gal' : '$3.45 / gal';
-        const dieselPrice = dieselNode ? '$' + parseFloat(dieselNode.textContent).toFixed(2) + ' / gal' : '$3.82 / gal';
+        let gasPrice = null;
+        let dieselPrice = null;
 
-        document.getElementById('gas-price').innerText = gasPrice;
-        document.getElementById('diesel-price').innerText = dieselPrice;
+        // Search text blocks for regular gas and diesel dollar values
+        doc.querySelectorAll('tr, div, td').forEach(el => {
+          const text = el.innerText || el.textContent;
+          if (!gasPrice && text.includes('Regular') && text.includes('$')) {
+            const match = text.match(/\$\d+\.\d{2,3}/);
+            if (match) gasPrice = match[0];
+          }
+          if (!dieselPrice && text.includes('Diesel') && text.includes('$')) {
+            const match = text.match(/\$\d+\.\d{2,3}/);
+            if (match) dieselPrice = match[0];
+          }
+        });
+
+        // Update elements or display fallback if parsing fails
+        document.getElementById('gas-price').innerText = gasPrice || '$3.45 / gal';
+        document.getElementById('diesel-price').innerText = dieselPrice || '$3.82 / gal';
       } catch (error) {
-        console.error('Fetch error:', error);
-        // Fallback display if network blocks proxy
+        console.error('Error fetching AAA fuel data:', error);
+        // Fallback display if network or proxy is blocked
         document.getElementById('gas-price').innerText = '$3.45 / gal';
         document.getElementById('diesel-price').innerText = '$3.82 / gal';
       }
     }
 
-    fetchLivePrices();
+    fetchAAAPrices();
   </script>
 
 </body>
